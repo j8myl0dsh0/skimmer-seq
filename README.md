@@ -65,9 +65,19 @@ skimmer --min-mean 10 < in.fastq > trimmed.fastq
 | `--min-len` | `0` | drop records shorter than this after trimming |
 | `--min-mean` | `0` | drop records below this mean Phred score; `0` disables tail trimming |
 | `--window` | `20` | window width used for tail trimming |
+| `--trim-polyg` | off | strip poly-G 3' tails (two-colour chemistry) |
 | `-h`, `--help` | | print usage |
 
 Exit codes: `0` success, `1` I/O or parse error, `2` bad usage.
+
+## Poly-G tails
+
+On two-colour flow cells (NovaSeq, NextSeq) an unamplified base is reported as
+`G`, so short inserts end in a poly-G waterfall that scores well and survives a
+quality filter. `--trim-polyg` removes that tail by sequence instead: it walks
+12-base windows from the 3' end and allows one non-`G` base per window, which
+covers a dark cycle without eating a genuinely G-rich insert. Run it before the
+quality pass, or leave it off for non-two-colour data.
 
 ## Memory bounds
 

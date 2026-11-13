@@ -5,12 +5,17 @@
 
 mod fastq;
 mod quality;
+mod trim;
 
 use std::env;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::process::ExitCode;
+
+/// Window and non-G tolerance for poly-G tail detection.
+const POLY_G_WINDOW: usize = 12;
+const POLY_G_MAX_OTHER: usize = 1;
 
 const USAGE: &str = "\
 skimmer - streaming FASTQ quality filter
@@ -25,6 +30,8 @@ OPTIONS:
     --min-mean <Q>   drop records with mean Phred below Q; 0 disables
                      -edge trimming                              [default: 0]
     --window <N>     window width for 3' tail trimming            [default: 20]
+    --trim-polyg     also strip poly-G 3' tails from two-colour
+                     chemistry (NovaSeq/NextSeq)
     -h, --help       print this message
 
 EXIT CODES:
@@ -49,6 +56,7 @@ struct Config {
     min_len: usize,
     min_mean: f64,
     window: usize,
+    trim_polyg: bool,
 }
 
 #[derive(Default)]
@@ -66,6 +74,7 @@ fn parse_args() -> Result<(Config, Option<String>), Failure> {
         min_len: 0,
         min_mean: 0.0,
         window: 20,
+        trim_polyg: false,
     };
     let mut input = None;
     let mut args = env::args().skip(1);
@@ -81,6 +90,7 @@ fn parse_args() -> Result<(Config, Option<String>), Failure> {
                 println!("{USAGE}");
                 return Err(Failure::Usage(String::new()));
             }
+            "--trim-polyg" => cfg.trim_polyg = true,
             "--min-len" => {
                 cfg.min_len = value("--min-len")?
                     .parse()
@@ -147,6 +157,9 @@ fn run() -> Result<(), Failure> {
         stats.read += 1;
         stats.bases_in += rec.seq.len() as u64;
 
+        if cfg.trim_polyg {
+            trim::polyg::trim_poly_g(&mut rec.seq, &mut rec.qual, POLY_G_WINDOW, POLY_G_MAX_OTHER);
+        }
         quality::trim_low_tail(&mut rec.seq, &mut rec.qual, cfg.window, cfg.min_mean);
 
         if rec.seq.len() < cfg.min_len {
