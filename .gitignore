@@ -1,0 +1,7 @@
+/target
+Cargo.lock.bak
+
+# local test data
+*.fastq
+*.fq.gz
+/data/
