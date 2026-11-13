@@ -1,0 +1,17 @@
+[package]
+name = "skimmer"
+version = "0.1.0"
+edition = "2021"
+description = "Streaming FASTQ quality filter for long reads"
+license = "MIT"
+repository = "https://github.com/j8myl0dsh0/skimmer-seq"
+readme = "README.md"
+keywords = ["fastq", "bioinformatics", "quality-filter"]
+categories = ["command-line-utilities", "science"]
+
+[dependencies]
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
